@@ -1,0 +1,200 @@
+{
+    "version": "1.0",
+    "menu": [
+        {
+            "id": "1",
+            "label": "Precios",
+            "accion": "menu",
+            "children": [
+                {
+                    "id": "1-1",
+                    "label": "Precios de Libreria",
+                    "accion": "menu",
+                    "children": [
+                        {
+                            "id": "1-1-1",
+                            "label": "Cuaderno Arte 100 hojas",
+                            "Precio": "5.200,00",
+                            "accion": "ver"
+                        },
+                        {
+                            "id": "1-1-2",
+                            "label": "Cuaderno Gloria 100 hojas",
+                            "Precio": "6.340,00",
+                            "accion": "ver"
+                        },
+                        {
+                            "id": "1-1-3",
+                            "label": "Juego de Biromes BIP 6 Unidades",
+                            "Precio": "3.200,00",
+                            "accion": "ver"
+                        },
+                        {
+                            "id": "1-1-4",
+                            "label": "Lapicera HB x 12",
+                            "Precio": "1.800,00",
+                            "accion": "ver"
+                        },
+                        {
+                            "id": "1-1-5",
+                            "label": "Goma de borrar",
+                            "Precio": "500,00",
+                            "accion": "ver"
+                        },
+                        {
+                            "id": "1-1-6",
+                            "label": "Sacapuntas metálico",
+                            "Precio": "750,00",
+                            "accion": "ver"
+                        },
+                        {
+                            "id": "1-1-7",
+                            "label": "Regla 30 cm",
+                            "Precio": "400,00",
+                            "accion": "ver"
+                        },
+                        {
+                            "id": "1-1-8",
+                            "label": "Marcadores x 6 colores",
+                            "Precio": "2.600,00",
+                            "accion": "ver"
+                        },
+                        {
+                            "id": "1-1-9",
+                            "label": "Carpeta A4 con 4 anillas",
+                            "Precio": "3.100,00",
+                            "accion": "ver"
+                        },
+                        {
+                            "id": "1-1-10",
+                            "label": "Hojas sueltas A4 x 100",
+                            "Precio": "1.500,00",
+                            "accion": "ver"
+                        },
+                        {
+                            "id": "1-1-11",
+                            "label": "Juego de lápices de colores x 12",
+                            "Precio": "3.900,00",
+                            "accion": "ver"
+                        },
+                        {
+                            "id": "1-1-12",
+                            "label": "Tijera escolar",
+                            "Precio": "800,00",
+                            "accion": "ver"
+                        },
+                        {
+                            "id": "1-1-13",
+                            "label": "Pegamento en barra",
+                            "Precio": "600,00",
+                            "accion": "ver"
+                        }
+                    ]
+                },
+                {
+                    "id": "1-2",
+                    "label": "Precios de Juguetes",
+                    "accion": "menu",
+                    "children": [
+                        {
+                            "id": "1-2-1",
+                            "label": "Lego 250 Piezas",
+                            "Precio": "15.800,00",
+                            "accion": "ver"
+                        },
+                        {
+                            "id": "1-2-2",
+                            "label": "Lego 1400 Piezas",
+                            "Precio": "46.340,00",
+                            "accion": "ver"
+                        },
+                        {
+                            "id": "1-2-3",
+                            "label": "Camion de Chapa con Acoplado",
+                            "Precio": "9.900,00",
+                            "accion": "ver"
+                        },
+                        {
+                            "id": "1-2-4",
+                            "label": "Muñeca Barbie",
+                            "Precio": "8.200,00",
+                            "accion": "ver"
+                        },
+                        {
+                            "id": "1-2-5",
+                            "label": "Pelota de fútbol",
+                            "Precio": "2.500,00",
+                            "accion": "ver"
+                        },
+                        {
+                            "id": "1-2-6",
+                            "label": "Rompecabezas 500 piezas",
+                            "Precio": "3.700,00",
+                            "accion": "ver"
+                        },
+                        {
+                            "id": "1-2-7",
+                            "label": "Autos Hot Wheels x 5",
+                            "Precio": "4.300,00",
+                            "accion": "ver"
+                        },
+                        {
+                            "id": "1-2-8",
+                            "label": "Tren eléctrico",
+                            "Precio": "12.900,00",
+                            "accion": "ver"
+                        },
+                        {
+                            "id": "1-2-9",
+                            "label": "Romero de construcción magnético",
+                            "Precio": "7.800,00",
+                            "accion": "ver"
+                        },
+                        {
+                            "id": "1-2-10",
+                            "label": "Set de plastilina x 12 colores",
+                            "Precio": "2.900,00",
+                            "accion": "ver"
+                        },
+                        {
+                            "id": "1-2-11",
+                            "label": "Peluches surtidos",
+                            "Precio": "3.500,00",
+                            "accion": "ver"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "2",
+            "label": "Recibir Lista por Mail",
+            "accion": "menu",
+            "children": [
+                {
+                    "id": "2-1",
+                    "label": "Enviar Lista de Libreria",
+                    "accion": "menu",
+                    "children": [
+                        {
+                            "id": "2-1-1",
+                            "label": "Ingresar un email para que te envie la Lista de Libreria",
+                            "accion": "input-email",
+                            "parametro": "Lista Libreria"
+                        }
+                    ]
+                },
+                {
+                    "id": "2-2",
+                    "label": "Lista de Juguetes",
+                    "accion": "ver"
+                },
+                {
+                    "id": "2-3",
+                    "label": "Todas las Listas",
+                    "accion": "ver"
+                }
+            ]
+        }
+    ]
+}

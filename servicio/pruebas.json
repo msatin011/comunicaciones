@@ -1,0 +1,38 @@
+oficina: [📚 📖 📝 📒 📕 📗 📘 📙 📔 🗒️
+💼 🗂️ 🗃️ 📁 📂 🖇️ 📌 📎 ✂️ 🖊️ 🖋️ ✏️
+]
+
+senales: [
+  ✅ ✔️ ❌ ❎ ⚠️ 🚫 ❗ ❕ ❓ ❔ 🔔 🔕 ⚡ 🔥 💧 🌊
+💰 💸 💳 🏷️ 🎁 🛒 🛍️
+]
+corazones ❤️ 🧡 💛 💚 💙 💜 🖤 🤍 🤎 💔 ❣️ 💕 💞 💓 💗 💖 💘 💝
+😀
+{
+  messaging_product: "whatsapp",
+  recipient_type: "individual",
+  to: "5491158723813",
+  type: "interactive",
+  interactive: {
+    type: "list",
+    header: {
+      type: "text",
+      text: "Marcar la opcion deseada",
+    },
+    body: {
+      text: "aux1",
+    },
+    footer: {
+      text: "aux2",
+    },
+    action: {
+      button: "Ver opciones",
+      sections: [
+        {
+          title: "Seleccionar",
+          rows: {},
+        },
+      ],
+    },
+  },
+}

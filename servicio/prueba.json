@@ -1,0 +1,55 @@
+{
+  messaging_product: "whatsapp",
+  recipient_type: "individual",
+  to: "5491136485978",
+  type: "interactive",
+  interactive: {
+    type: "list",
+    header: {
+      type: "text",
+      text: "titulo 2",
+    },
+    body: {
+      text: "Menu Principal",
+    },
+    footer: {
+      text: "Tocar Ver Opciones",
+    },
+    action: {
+      button: "Ver opciones",
+      sections: [
+        {
+          title: "Seleccionar",
+          rows: [
+            {
+              id: "1",
+              title: "Consultar Precios",
+            },
+            {
+              id: "2",
+              title: "Recibir Listas por Mail",
+            },
+            {
+              id: "3",
+              title: "Realizar un Pedido",
+            },
+            {
+              id: "4",
+              title: "Consultar Pedidos Pendie",
+              description: "✔️ Consultar Pedidos Pendientes",
+            },
+            {
+              id: "5",
+              title: "Hablar cono un represent",
+              description: "✔️ Hablar cono un representante",
+            },
+            {
+              id: "-1",
+              title: "❌ Volver al menu anterior",
+            },
+          ],
+        },
+      ],
+    },
+  },
+}
