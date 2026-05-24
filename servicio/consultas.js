@@ -4,7 +4,7 @@ async function obtenerMenuPrincipal(orga) {
     try {
         const pool = await poolPromise;
         const query = `
-        SELECT m.id, m.padre, d.param, d.valor, d.orden, d.ver,
+        SELECT m.id, m.padre, m.accion,d.param, d.valor, d.orden,
                m.header, m.titulo, m.footer, m.tipo
         FROM menu m 
         LEFT JOIN menu_det d ON m.id = d.id AND m.orga = d.orga

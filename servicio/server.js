@@ -121,12 +121,8 @@ app.get('/api/webhook', (req, res) => {
         console.log(e);
     }
 });
-/*
-body.entry[0].changes[0].value.messages[0].interactive.list_reply.id
-  title
-*/
 
-//body.entry[0].changes[0].value.messages[0].interactive.list_reply
+
 app.post('/api/webhook', async (req, res) => {
     var telefono = "";
     var nome = "";
@@ -161,11 +157,28 @@ app.post('/api/webhook', async (req, res) => {
                         enviar(phoneNumber, menuNodes['0'])
                     }
                     else {
-                        var nodoEnviado = clientes[phoneNumber].nodoEnviado;
-                        console.log('nodo enviado', nodoEnviado.tipo);
-                        switch (nodoEnviado.tipo) {
+                        clientes[phoneNumber].nodoActual = userResponse;
+                        let nodoActual = menuNodes.filter(function (x) { return x.id == userResponse })[0];
+
+                        var hijos;
+
+                        switch (nodoActual.accion) {
+                            case 'ver':
+                                var hijos = Object.values(menuNodes).filter(item =>
+                                    item.padre == nodoActual.id &&
+                                    item.param == "label"
+                                );
+                                hijos = hijos.sort((a, b) => a.orden - b.orden)
+                                await sendWhatsappMessage(phoneNumber, 'ver-interactivo', nodoActual.titulo, nodoActual, hijos);
+                                break;
+                            case 'display-query':
+                                respuesta = await traeQuery(nodoActual);
+                                await sendWhatsappMessage(phoneNumber, 'texto', respuesta);
+
+                                break;
+                        }
+                        switch (nodoActual.tipo) {
                             case "ver-lista":
-                                let respuesta = traeHijos(nodoEnviado.id, userResponse);
                                 if (respuesta == null) {
                                     await sendWhatsappMessage(phoneNumber, 'texto', 'Opcion Incorrecta\nIntente nuevamente');
                                 }
@@ -186,104 +199,37 @@ app.post('/api/webhook', async (req, res) => {
                 }
             }
         }
-
-
-
-        return;
-        const body = req.body;
-
-        var phoneNumber; var nombre; var timestamp; var mensaje;
-        res.status(200).send('WebHook Procesado');
-        if ('statuses' in body.entry[0].changes[0].value) {
-            if (
-                body.entry[0].changes[0].value.statuses[0].status == 'sent' ||
-                body.entry[0].changes[0].value.statuses[0].status == 'read') {
-                return;
-            }
-        }
-        else {
-            phoneNumber = body.entry[0].changes[0].value.contacts[0].wa_id;
-            nombre = body.entry[0].changes[0].value.contacts[0].profile.name;
-            if (!clientes[phoneNumber]) {
-                await updateCliente(false, phoneNumber, nombre, menuNodes["0"].tipo, "0");
-                clientes[phoneNumber].anterior = '0';
-                await sendWhatsappMessage(phoneNumber, 'texto', "🙋‍♂️ Bienvenido/a " + nombre, getNodo('0'));
-
-                switch (menuNodes["0"].tipo) {
-                    case 'ver-submenues-interactivo':
-                        enviarLista("0", phoneNumber);
-                        break;
-                    case "ver-lista":
-                        const texto = generarListaMenu(menuNodes['0']);
-                        clientes[phoneNumber].estado = 'ver-lista';
-                        clientes[phoneNumber].viendoid = '0';
-                        sendWhatsappMessage(phoneNumber, 'texto', texto, getNodo('0'));
-
-                }
-            }
-            else {
-                let cliac = clientes[phoneNumber];
-
-                let respondio;
-
-                switch (cliac.estado) {
-                    case 'ver-lista':
-                        let padre = cliac.viendoid;
-                        respondio = body.entry[0].changes[0].value.messages[0].text.body;
-
-                        let respuesta = traeHijos(cliac.viendoid, respondio);
-                        if (respuesta == null) {
-                            await sendWhatsappMessage(phoneNumber, 'texto', 'Opcion Incorrecta\nIntente nuevamente');
-                        }
-                        else {
-                            clientes[phoneNumber].estado = respuesta.tipo;
-                            clientes[phoneNumber].viendoid = respuesta.id;
-
-                            await sendWhatsappMessage(phoneNumber, respuesta.tipo, "", menuNodes[respuesta.id]);
-                        }
-
-                        break;
-                    case "ver-interactivo":
-                        respondio = body.entry[0].changes[0].value.messages[0].interactive.list_reply;
-                        if (respondio.id == '0') {
-                            await sendWhatsappMessage(phoneNumber, getNodo(clientes[phoneNumber].anterior)[0].tipo, '', getNodo(clientes[phoneNumber].anterior));
-                            return;
-                        }
-
-                        nodos = menuNodes.filter(function (x) { return x.id == respondio.id });
-                        switch (nodos[0].tipo) {
-                            case "ver-texto-lista":
-                                let nodoTipo = nodos.filter(item => item.param == 'tipo')[0].valor;
-                                switch (nodoTipo) {
-                                    case 'query':
-                                        let nodoQuery = nodos.filter(item => item.param == nodoTipo)[0].valor
-                                        let resultado = await consulta(nodoQuery, 'array');
-                                        let configuracion = nodos.filter(function (x) { return x.param == 'tabla' })[0].valor;
-                                        resultado = await getTabla(resultado, configuracion);
-                                        await sendWhatsappMessage(phoneNumber, 'texto', resultado, respondio.title);
-
-                                        break;
-                                }
-
-                                let x = 0
-
-                                break;
-                            case "ver-texto-lista":
-                                let a = 1;
-                                break;
-                        }
-                }
-
-
-
-            }
-        }
     }
     catch (e) {
         console.log(e);
     }
 });
 
+
+async function traeQuery(nodo) {
+    var retu = "";
+    try {
+        let query = menuNodes.filter(item => item.id == nodo.id && item.param == 'query')[0].valor;
+        let tabla = menuNodes.filter(item => item.id == nodo.id && item.param == 'tabla')[0].valor;
+        let data = await consultas.consulta(query, 'array');
+        let configura = tabla.split('|');
+        var cols = configura[1].split(";");
+
+        for (var i = 0; i < data.length; i++) {
+            for (var j = 0; j < cols.length; j++) {
+                retu += cols[j] + ":" + data[i][j] + "\n"
+            }
+            retu += "................................."
+        }
+
+    }
+
+    catch (e) { return "eror" }
+    finally {
+        return retu;
+    }
+
+}
 async function enviar(phoneNumber, nodo) {
     switch (nodo.tipo) {
         case 'ver-interactivo':
@@ -312,7 +258,7 @@ function getUserMessage(message) {
                 return message.interactive.button_reply.title;
             }
             if (message.interactive.type === "list_reply") {
-                return message.interactive.list_reply.title;
+                return message.interactive.list_reply.id;
             }
             return null;
 
@@ -360,19 +306,6 @@ async function getTabla(r, config) {
     }
 }
 
-function traeHijos(id, orden) {
-    let Hijos = Object.values(menuNodes).filter(item =>
-        item.padre == id &&
-        item.param == "label"
-    );
-    if (!Number.isInteger(Number(orden)) ||
-        parseInt(orden) > Hijos.length) {
-        return null;
-    }
-    else {
-        return Hijos[orden - 1];
-    }
-}
 function generarListaMenu(nodo) {
     var retu = "";
     try {
@@ -393,23 +326,17 @@ function generarListaMenu(nodo) {
         return retu;
     }
 }
-async function generarOpciones(padreId) {
+async function generarOpciones(hijos) {
     var retu = [];
     try {
-        menuPadre = menuNodes[padreId];
-        const listaNodos = Object.values(menuNodes).filter(item =>
-            item.padre == padreId &&
-            item.param == "label"
-        );
-
-        for (var i = 0; i < listaNodos.length; i++) {
-            let titleStr = "✔️ " + listaNodos[i].valor;
+        for (var i = 0; i < hijos.length; i++) {
+            let titleStr = "✔️ " + hijos[i].valor;
 
             if (titleStr.length > 24) {
                 titleStr = titleStr.substring(0, 24);
             }
 
-            let op = { id: listaNodos[i].id, title: titleStr };
+            let op = { id: hijos[i].id, title: titleStr };
 
             retu.push(op);
         }
@@ -437,7 +364,7 @@ function bodyInteractivo(phoneNumber, mensaje, opciones) {
                 text: mensaje
             },
             body: {
-                text: "Tocar Ver Opciones"
+                text: "Elgir Opcion"
             },
             footer: {
                 text: ""
@@ -462,7 +389,9 @@ function bodyInteractivo(phoneNumber, mensaje, opciones) {
                      ]
                         */
 
-async function sendWhatsappMessage(phoneNumber, tipo, mensaje, nodo) {
+async function sendWhatsappMessage(phoneNumber, tipo, mensaje, nodo, hijos) {
+
+
     clientes[phoneNumber].nodoEnviado = nodo;
     var body
     const cleanPhone = phoneNumber.toString().replace(/[\s+\-()]/g, '').trim();
@@ -481,8 +410,8 @@ async function sendWhatsappMessage(phoneNumber, tipo, mensaje, nodo) {
             };
             break;
         case 'ver-interactivo':
-            let opciones = await generarOpciones(nodo.id);
-            body = bodyInteractivo(cleanPhone, nodo.titulo, opciones);
+            let opciones = await generarOpciones(hijos)
+            body = bodyInteractivo(cleanPhone, mensaje, opciones);
             break;
         case 'ver-lista':
             clientes[phoneNumber].estado = 'ver-lista';
