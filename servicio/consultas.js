@@ -51,12 +51,13 @@ async function obtenerClientes(orga) {
     }
 }
 
-async function updateCliente(orga, telefono, nombre, estado, proximo) {
+async function updateCliente(orga, telefono, nombre, nodoactual, nodoanterior) {
     try {
         const pool = await poolPromise;
         const ahora = new Date();
-        const utc3 = new Date(ahora.getTime() - (3 * 60 * 60 * 1000));
-        const timestamp = utc3.getTime();
+        // Un timestamp en milisegundos (getTime) es absoluto y universal. 
+        // No se debe restar 3 horas, porque eso genera una fecha de hace 3 horas.
+        const timestamp = ahora.getTime();
 
         const checkQuery = `SELECT 1 FROM cliente WHERE orga = @orga AND telefono = @telefono`;
         const reqCheck = pool.request()
@@ -69,29 +70,31 @@ async function updateCliente(orga, telefono, nombre, estado, proximo) {
             // Si el registro existe, actualizamos
             const updateQuery = `
                 UPDATE cliente 
-                SET ultimocontacto = @timestamp, estado = @estado, proximo = @proximo
-                WHERE orga = @orga AND telefono = @telefono
+                SET ultimocontacto = @ultimocontacto, nodoactual = @nodoactual,
+                nodoanterior = @nodoanterior
+                               WHERE orga = @orga AND telefono = @telefono
             `;
             await pool.request()
-                .input('timestamp', timestamp)
-                .input('estado', estado)
-                .input('proximo', proximo)
+                .input('ultimocontacto', timestamp)
+                .input('nodoanterior', nodoanterior)
+                .input('nodoactual', nodoactual)
                 .input('orga', orga)
                 .input('telefono', telefono)
                 .query(updateQuery);
         } else {
             // Si no existe, insertamos (el nombre solo se guarda al inicio)
             const insertQuery = `
-                INSERT INTO cliente (orga, telefono, nombre, primercontacto, ultimocontacto, estado, proximo)
-                VALUES (@orga, @telefono, @nombre, @timestamp, @timestamp, @estado, @proximo)
+                INSERT INTO cliente (orga, telefono, nombre, primercontacto, ultimocontacto, nodoactual, nodoanterior)
+                VALUES (@orga, @telefono, @nombre, @primercontacto, @ultimocontacto, @nodoactual, @nodoanterior)
             `;
             await pool.request()
                 .input('orga', orga)
                 .input('telefono', telefono)
                 .input('nombre', nombre)
-                .input('timestamp', timestamp)
-                .input('estado', estado)
-                .input('proximo', proximo)
+                .input('primercontacto', timestamp)
+                .input('ultimocontacto', timestamp)
+                .input('nodoactual', "0")
+                .input('nodoanterior', "0")
                 .query(insertQuery);
         }
     } catch (error) {

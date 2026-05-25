@@ -22,7 +22,6 @@ const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 const WHATSAPP_ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN;
 const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
 const ORGA = process.env.ORGA;
-console.log('aaaaaaaaaaaaAA' + process.env.TMP_PATH);
 
 var clientes = {};
 var menuNodes = {};
@@ -151,55 +150,69 @@ app.post('/api/webhook', async (req, res) => {
                     var nombre = llego.entry[0].changes[0].value.contacts[0].profile.name;
 
                     if (!clientes[phoneNumber]) {
-                        await updateCliente(false, phoneNumber, nombre, menuNodes["0"].tipo, menuNodes['0'], null);
+                        await updateCliente(true, phoneNumber, nombre, "0", "0");
                         await sendWhatsappMessage(phoneNumber, 'texto', "🙋‍♂️ Bienvenido/a " + nombre, getNodo('0'));
                         enviar(phoneNumber, menuNodes['0'])
                     }
                     else {
-                        clientes[phoneNumber].nodoActual = userResponse;
-                        let nodoActual = menuNodes.filter(function (x) { return x.id == userResponse })[0];
+                        let diferencia = parseInt(diferenciaTiempo(clientes[phoneNumber].ultimocontacto));
+                        if (diferencia > parseInt(process.env.TIEMPO_NUEVO)) {
+                            clientes[phoneNumber].nodoActual = "0";
+                            await updateCliente(true, phoneNumber, nombre, "0", "0");
+                            let nodoAnterior = "0";
+                            await sendWhatsappMessage(phoneNumber, 'texto', "🙋‍♂️ Bienvenido/a " + nombre, getNodo('0'));
+                            enviar(phoneNumber, menuNodes['0'])
 
-                        var hijos;
 
-                        switch (nodoActual.accion) {
-                            case 'ver':
-                                var hijos = Object.values(menuNodes).filter(item =>
-                                    item.padre == nodoActual.id &&
-                                    item.param == "label"
-                                );
-                                hijos = hijos.sort((a, b) => a.orden - b.orden)
-                                await sendWhatsappMessage(phoneNumber, nodoActual.tipo, nodoActual.titulo, nodoActual, hijos);
-                                break;
-                            case 'display-query':
-                                await enviarEspera(phoneNumber);
-                                respuesta = await traeQuery(nodoActual, phoneNumber, nodoActual.valor);
-                                switch (respuesta) {
-                                    case 'table':
-                                        await sendWhatsappMessage(phoneNumber, 'texto', respuesta);
-                                        break;
-                                    case 'table-pdf':
-                                        await sendWhatsappMessage(phoneNumber, 'table-pdf', respuesta, nodoActual);
-                                        break;
-                                }
-                                break;
-                        }
-                        switch (nodoActual.tipo) {
-                            case "ver-lista":
-                                if (respuesta == null) {
-                                    await sendWhatsappMessage(phoneNumber, 'texto', 'Opcion Incorrecta\nIntente nuevamente');
-                                }
-                                else {
-                                    clientes[phoneNumber].estado = respuesta.tipo;
-                                    clientes[phoneNumber].viendoid = respuesta.id;
+                        } else {
+                            clientes[phoneNumber].nodoActual = userResponse;
+                            clientes[phoneNumber].ultimocontacto = Date.now();
+                            await updateCliente(true, phoneNumber, nombre, userResponse);
 
-                                    await sendWhatsappMessage(phoneNumber, respuesta.tipo, "", menuNodes[respuesta.id]);
-                                }
+                            let nodoActual = menuNodes.filter(function (x) { return x.id == userResponse })[0];
 
-                                break;
-                            case "ver-interactivo":
-                                break;
-                            case "ver-texto-lista":
-                                break;
+                            var hijos;
+
+                            switch (nodoActual.accion) {
+                                case 'ver':
+                                    var hijos = Object.values(menuNodes).filter(item =>
+                                        item.padre == nodoActual.id &&
+                                        item.param == "label"
+                                    );
+                                    hijos = hijos.sort((a, b) => a.orden - b.orden)
+                                    await sendWhatsappMessage(phoneNumber, nodoActual.tipo, nodoActual.titulo, nodoActual, hijos);
+                                    break;
+                                case 'display-query':
+                                    await enviarEspera(phoneNumber);
+                                    respuesta = await traeQuery(nodoActual, phoneNumber, nodoActual.valor);
+                                    switch (respuesta) {
+                                        case 'table':
+                                            await sendWhatsappMessage(phoneNumber, 'texto', respuesta);
+                                            break;
+                                        case 'table-pdf':
+                                            await sendWhatsappMessage(phoneNumber, 'table-pdf', respuesta, nodoActual);
+                                            break;
+                                    }
+                                    break;
+                            }
+                            switch (nodoActual.tipo) {
+                                case "ver-lista":
+                                    if (respuesta == null) {
+                                        await sendWhatsappMessage(phoneNumber, 'texto', 'Opcion Incorrecta\nIntente nuevamente');
+                                    }
+                                    else {
+                                        clientes[phoneNumber].estado = respuesta.tipo;
+                                        clientes[phoneNumber].viendoid = respuesta.id;
+
+                                        await sendWhatsappMessage(phoneNumber, respuesta.tipo, "", menuNodes[respuesta.id]);
+                                    }
+
+                                    break;
+                                case "ver-interactivo":
+                                    break;
+                                case "ver-texto-lista":
+                                    break;
+                            }
                         }
                     }
                 }
@@ -210,6 +223,43 @@ app.post('/api/webhook', async (req, res) => {
         console.log(e);
     }
 });
+
+function diferenciaTiempo(timestamp) {
+
+    const inicio = new Date(Number(timestamp));
+    const ahora = new Date();
+
+    let diffMs = Math.abs(ahora - inicio);
+
+    const minutosTotales = Math.floor(diffMs / (1000 * 60));
+
+    const minutos = minutosTotales % 60;
+
+    const horasTotales = Math.floor(minutosTotales / 60);
+    const horas = horasTotales % 24;
+
+    const diasTotales = Math.floor(horasTotales / 24);
+
+    const años = Math.floor(diasTotales / 365);
+
+    const restoDias = diasTotales % 365;
+
+    const meses = Math.floor(restoDias / 30);
+
+    const dias = restoDias % 30;
+
+    const pad = (n, size = 2) =>
+        String(n).padStart(size, '0');
+
+    return (
+        pad(años, 4) +
+        pad(meses, 2) +
+        pad(dias, 2) +
+        pad(horas, 2) +
+        pad(minutos, 2)
+    );
+}
+
 
 
 async function traeQuery(nodo, phoneNumber, titu) {
@@ -634,35 +684,39 @@ async function generarTextoMenu(phoneNumber, padreId, preMensaje) {
 let botActivo = true;
 
 
-async function updateCliente(grabarBD, numero, nombre, tipoEnviado, nodoEnviado, nodoAnterior) {
-    const ahora = new Date();
-    const utc3 = new Date(ahora.getTime() - (3 * 60 * 60 * 1000));
-    const timestamp = utc3.getTime();
+async function updateCliente(grabarBD, numero, nombre, nodoActual, nodoAnterior) {
+    try {
+        if (!nodoAnterior) nodoAnterior = nodoActual;
+        const ahora = new Date();
+        const utc3 = new Date(ahora.getTime() - (3 * 60 * 60 * 1000));
+        const timestamp = utc3.getTime();
 
-    if (!clientes[numero]) {
-        clientes[numero] = {
-            nombre: nombre,
-            primercontacto: timestamp,
-            total_mensajes: 1,
-            ultimocontacto: timestamp,
-            tipoEnviado: tipoEnviado,
-            nodoEnviado: nodoEnviado,
-            nodoAnterior: nodoAnterior
-        };
-    } else {
-        // No actualizamos el nombre si ya existe
-        clientes[numero].total_mensajes = (clientes[numero].total_mensajes || 0) + 1;
-        clientes[numero].ultimocontacto = timestamp;
-        clientes[numero].estado = estado;
-        clientes[numero].proximo = valProximo;
-    }
-
-    if (grabarBD) {
-        try {
-            await consultas.updateCliente(ORGA, numero.toString(), nombre, estado, valProximo);
-        } catch (err) {
-            console.error("Error al actualizar cliente en PostgreSQL:", err);
+        if (!clientes[numero]) {
+            clientes[numero] = {
+                nombre: nombre,
+                primercontacto: timestamp,
+                total_mensajes: 1,
+                ultimocontacto: timestamp,
+                nodoActual: nodoActual,
+                nodoAnterior: nodoAnterior
+            };
+        } else {
+            // No actualizamos el nombre si ya existe
+            clientes[numero].ultimocontacto = timestamp;
+            clientes[numero].nodoactual = nodoActual;
+            clientes[numero].nodoanterior = nodoAnterior;
         }
+
+        if (grabarBD) {
+            try {
+                await consultas.updateCliente(ORGA, numero.toString(), nombre, nodoActual, nodoAnterior);
+            } catch (err) {
+                console.error("Error al actualizar cliente en PostgreSQL:", err);
+            }
+        }
+    }
+    catch (e) {
+        console.log(e)
     }
 }
 
