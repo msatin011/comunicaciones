@@ -8,7 +8,7 @@ const cors = require('cors');
 const fs = require('fs');
 const TelegramBot = require('node-telegram-bot-api');
 const consultas = require('./consultas');
-
+const pdf = require('./generarPdf.js');
 const app = express();
 const PORT = process.env.PORT || 2711;
 const allowedOrigins = process.env.ORIGENES;
@@ -22,7 +22,7 @@ const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 const WHATSAPP_ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN;
 const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
 const ORGA = process.env.ORGA;
-
+console.log('aaaaaaaaaaaaAA' + process.env.TMP_PATH);
 
 var clientes = {};
 var menuNodes = {};
@@ -148,7 +148,6 @@ app.post('/api/webhook', async (req, res) => {
                     // Aquí procesas tu lógica de bot
                     llego = req.body;
                     var phoneNumber = llego.entry[0].changes[0].value.contacts[0].wa_id;
-
                     var nombre = llego.entry[0].changes[0].value.contacts[0].profile.name;
 
                     if (!clientes[phoneNumber]) {
@@ -169,12 +168,19 @@ app.post('/api/webhook', async (req, res) => {
                                     item.param == "label"
                                 );
                                 hijos = hijos.sort((a, b) => a.orden - b.orden)
-                                await sendWhatsappMessage(phoneNumber, 'ver-interactivo', nodoActual.titulo, nodoActual, hijos);
+                                await sendWhatsappMessage(phoneNumber, nodoActual.tipo, nodoActual.titulo, nodoActual, hijos);
                                 break;
                             case 'display-query':
-                                respuesta = await traeQuery(nodoActual);
-                                await sendWhatsappMessage(phoneNumber, 'texto', respuesta);
-
+                                await enviarEspera(phoneNumber);
+                                respuesta = await traeQuery(nodoActual, phoneNumber, nodoActual.valor);
+                                switch (respuesta) {
+                                    case 'table':
+                                        await sendWhatsappMessage(phoneNumber, 'texto', respuesta);
+                                        break;
+                                    case 'table-pdf':
+                                        await sendWhatsappMessage(phoneNumber, 'table-pdf', respuesta, nodoActual);
+                                        break;
+                                }
                                 break;
                         }
                         switch (nodoActual.tipo) {
@@ -206,27 +212,42 @@ app.post('/api/webhook', async (req, res) => {
 });
 
 
-async function traeQuery(nodo) {
+async function traeQuery(nodo, phoneNumber, titu) {
     var retu = "";
+    let _ti = "";
     try {
         let query = menuNodes.filter(item => item.id == nodo.id && item.param == 'query')[0].valor;
-        let tabla = menuNodes.filter(item => item.id == nodo.id && item.param == 'tabla')[0].valor;
+        _ti = 'query';
         let data = await consultas.consulta(query, 'array');
-        let configura = tabla.split('|');
-        var cols = configura[1].split(";");
 
-        for (var i = 0; i < data.length; i++) {
-            for (var j = 0; j < cols.length; j++) {
-                retu += cols[j] + ":" + data[i][j] + "\n"
+        let tabla = "";
+        if (menuNodes.filter(item => item.id == nodo.id && item.param == 'tabla').length != 0) {
+            _ti = 'table';
+            tabla = menuNodes.filter(item => item.id == nodo.id && item.param == 'tabla')[0].valor;
+            let configura = tabla.split('|');
+            var cols = configura[1].split(";");
+
+            for (var i = 0; i < data.length; i++) {
+                if (data[i][2])
+                    for (var j = 0; j < cols.length; j++) {
+                        retu += cols[j] + ":" + data[i][j] + "\n"
+                    }
+                retu += "..........................................\n"
             }
-            retu += "................................."
+
+        }
+        if (menuNodes.filter(item => item.id == nodo.id && item.param == 'tabla-pdf').length != 0) {
+            _ti = 'table-pdf';
+            tabla = menuNodes.filter(item => item.id == nodo.id && item.param == 'tabla-pdf')[0].valor;
+            tabla = tabla.split(";");
+            await pdf.genTablePDF(data, tabla, phoneNumber.toString(), titu)
         }
 
     }
 
     catch (e) { return "eror" }
     finally {
-        return retu;
+        return _ti;
     }
 
 }
@@ -383,11 +404,7 @@ function bodyInteractivo(phoneNumber, mensaje, opciones) {
     return body;
 
 }
-/*
-                            { id: "express", title: "Express 24h", description: "Entrega en 1 día" },
-                            { id: "standard", title: "Standard 2-3 días", description: "Entrega en 2 a 3 días" }
-                     ]
-                        */
+
 
 async function sendWhatsappMessage(phoneNumber, tipo, mensaje, nodo, hijos) {
 
@@ -399,13 +416,25 @@ async function sendWhatsappMessage(phoneNumber, tipo, mensaje, nodo, hijos) {
         throw new Error(`Número inválido: ${cleanPhone}`);
     };
     switch (tipo) {
+        case 'table-pdf':
+            body = {
+                messaging_product: 'whatsapp',
+                to: cleanPhone,
+                type: "document",
+                document: {
+                    link: "https://comunicaciones.bipoint.com.ar/tmp/" + phoneNumber.toString() + ".pdf",
+                    caption: "Documento Solicitado",
+                    filename: nodo.valor
+                }
+            };
+            break;
         case 'texto':
             body = {
                 messaging_product: 'whatsapp',
                 to: cleanPhone,
                 type: 'text',
                 text: {
-                    body: mensaje
+                    body: mensaje,
                 }
             };
             break;
@@ -420,7 +449,7 @@ async function sendWhatsappMessage(phoneNumber, tipo, mensaje, nodo, hijos) {
                 to: cleanPhone,
                 type: 'text',
                 text: {
-                    body: generarListaMenu(menuNodes[nodo[0].id])
+                    body: generarListaMenu(menuNodes[nodo[0].id]),
                 }
             };
             break;
@@ -441,6 +470,33 @@ async function sendWhatsappMessage(phoneNumber, tipo, mensaje, nodo, hijos) {
     return data;
 }
 
+
+async function enviarEspera(phoneNumber) {
+    const cleanPhone = phoneNumber.toString().replace(/[\s+\-()]/g, '').trim();
+    if (!/^\d{10,15}$/.test(cleanPhone)) {
+        throw new Error(`Número inválido: ${cleanPhone}`);
+    };
+    body = {
+        messaging_product: 'whatsapp',
+        to: cleanPhone,
+        type: 'text',
+        text: {
+            body: "Preparando respuesta ✋ ...."
+        }
+    };
+
+    const response = await fetch(
+        `https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`,
+        {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${WHATSAPP_ACCESS_TOKEN}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body)
+        }
+    );
+}
 
 
 app.get('/api/test', (req, res) => {
